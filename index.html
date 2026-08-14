@@ -10,6 +10,45 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Firebase Firestore -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+        import {
+            getFirestore,
+            doc,
+            getDoc,
+            setDoc,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmUrivKOBFSdHW3Zj1JrayCtLBI90hC44",
+            authDomain: "belajar-88407.firebaseapp.com",
+            projectId: "belajar-88407",
+            storageBucket: "belajar-88407.firebasestorage.app",
+            messagingSenderId: "713817694573",
+            appId: "1:713817694573:web:3d806af1002bd220917a64",
+            measurementId: "G-FYHWGKWGQB"
+        };
+
+        try {
+            const firebaseApp = initializeApp(firebaseConfig);
+            window.firebaseDB = getFirestore(firebaseApp);
+
+            // Expose Firestore functions to the main (non-module) app script.
+            window.firebaseFirestore = {
+                doc,
+                getDoc,
+                setDoc,
+                serverTimestamp
+            };
+
+            console.log("Firebase Firestore siap.");
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+        }
+    </script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -741,8 +780,71 @@
             }, 3000);
         }
 
-        // Local Storage Sync
-        function loadState() {
+        // Local Storage + Firebase Firestore Sync
+        const FIRESTORE_DOC_PATH = "appData/main";
+
+        function normalizeStateData() {
+            if (!Array.isArray(state.courses)) state.courses = [];
+            if (!Array.isArray(state.schedules)) state.schedules = [];
+            if (!Array.isArray(state.tasks)) state.tasks = [];
+            if (!state.profile || typeof state.profile !== "object") {
+                state.profile = {
+                    name: 'Mahasiswa Baru UT',
+                    nim: '041234567',
+                    jurusan: 'Sistem Informasi',
+                    semester: 1,
+                    targetIpk: 3.80
+                };
+            }
+            if (!state.pomoStats || typeof state.pomoStats !== "object") {
+                state.pomoStats = { completed: 0, totalMinutes: 0 };
+            }
+
+            state.courses.forEach(c => {
+                const modCount = parseInt(c.modules) || 9;
+
+                if (!c.completedModules ||
+                    !Array.isArray(c.completedModules) ||
+                    c.completedModules.length !== modCount) {
+                    c.completedModules = Array(modCount).fill(false);
+                }
+
+                if (!c.notes || typeof c.notes !== "object") {
+                    c.notes = { text: "" };
+                }
+
+                if (!c.tuton || typeof c.tuton !== "object") {
+                    c.tuton = {
+                        discussions: Array(8).fill(false),
+                        tasks: Array(3).fill(false)
+                    };
+                }
+
+                if (!Array.isArray(c.tuton.discussions) ||
+                    c.tuton.discussions.length !== 8) {
+                    c.tuton.discussions = Array(8).fill(false);
+                }
+
+                if (!Array.isArray(c.tuton.tasks) ||
+                    c.tuton.tasks.length !== 3) {
+                    c.tuton.tasks = Array(3).fill(false);
+                }
+            });
+        }
+
+        function saveLocalBackup() {
+            try {
+                localStorage.setItem('ut_profile', JSON.stringify(state.profile));
+                localStorage.setItem('ut_courses', JSON.stringify(state.courses));
+                localStorage.setItem('ut_schedules', JSON.stringify(state.schedules));
+                localStorage.setItem('ut_tasks', JSON.stringify(state.tasks));
+                localStorage.setItem('ut_pomo', JSON.stringify(state.pomoStats));
+            } catch (e) {
+                console.error("Local storage save error", e);
+            }
+        }
+
+        function loadLocalBackup() {
             try {
                 const savedProfile = localStorage.getItem('ut_profile');
                 if (savedProfile) state.profile = JSON.parse(savedProfile);
@@ -758,28 +860,89 @@
 
                 const savedPomo = localStorage.getItem('ut_pomo');
                 if (savedPomo) state.pomoStats = JSON.parse(savedPomo);
-
-                // Ensure data structure validity
-                state.courses.forEach(c => {
-                    const modCount = parseInt(c.modules) || 9;
-                    if (!c.completedModules || !Array.isArray(c.completedModules) || c.completedModules.length !== modCount) {
-                        c.completedModules = Array(modCount).fill(false);
-                    }
-                });
             } catch (e) {
                 console.error("Local storage load error", e);
             }
         }
 
-        function saveState() {
+        async function loadState() {
+            // Load local data first so the app still works offline.
+            loadLocalBackup();
+            normalizeStateData();
+
+            // Wait briefly for the Firebase module above to finish initializing.
+            for (let i = 0; i < 30 && !window.firebaseDB; i++) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            if (!window.firebaseDB || !window.firebaseFirestore) {
+                console.warn("Firebase belum tersedia. Menggunakan Local Storage.");
+                return;
+            }
+
             try {
-                localStorage.setItem('ut_profile', JSON.stringify(state.profile));
-                localStorage.setItem('ut_courses', JSON.stringify(state.courses));
-                localStorage.setItem('ut_schedules', JSON.stringify(state.schedules));
-                localStorage.setItem('ut_tasks', JSON.stringify(state.tasks));
-                localStorage.setItem('ut_pomo', JSON.stringify(state.pomoStats));
+                const { doc, getDoc } = window.firebaseFirestore;
+                const dataRef = doc(window.firebaseDB, FIRESTORE_DOC_PATH);
+                const snapshot = await getDoc(dataRef);
+
+                if (snapshot.exists()) {
+                    const cloudData = snapshot.data();
+
+                    if (cloudData.profile) state.profile = cloudData.profile;
+                    if (Array.isArray(cloudData.courses)) state.courses = cloudData.courses;
+                    if (Array.isArray(cloudData.schedules)) state.schedules = cloudData.schedules;
+                    if (Array.isArray(cloudData.tasks)) state.tasks = cloudData.tasks;
+                    if (cloudData.pomoStats) state.pomoStats = cloudData.pomoStats;
+
+                    normalizeStateData();
+                    saveLocalBackup();
+
+                    console.log("Data berhasil dimuat dari Firebase.");
+                } else {
+                    // First time: upload the current local/default data to Firebase.
+                    await saveState(false);
+                    console.log("Data awal berhasil dibuat di Firebase.");
+                }
             } catch (e) {
-                console.error("Local storage save error", e);
+                console.error("Firebase load error:", e);
+                showToast("Firebase gagal dimuat. Data lokal tetap digunakan.", "error");
+            }
+
+            normalizeStateData();
+        }
+
+        async function saveState(showSyncToast = false) {
+            normalizeStateData();
+            saveLocalBackup();
+
+            if (!window.firebaseDB || !window.firebaseFirestore) {
+                return;
+            }
+
+            try {
+                const { doc, setDoc, serverTimestamp } = window.firebaseFirestore;
+                const dataRef = doc(window.firebaseDB, FIRESTORE_DOC_PATH);
+
+                await setDoc(dataRef, {
+                    profile: state.profile,
+                    courses: state.courses,
+                    schedules: state.schedules,
+                    tasks: state.tasks,
+                    pomoStats: state.pomoStats,
+                    updatedAt: serverTimestamp()
+                });
+
+                if (showSyncToast) {
+                    showToast("Data berhasil disinkronkan ke Firebase!");
+                }
+
+                console.log("Data tersimpan ke Firebase.");
+            } catch (e) {
+                console.error("Firebase save error:", e);
+
+                if (showSyncToast) {
+                    showToast("Gagal menyimpan ke Firebase. Data lokal tetap tersimpan.", "error");
+                }
             }
         }
 
@@ -1673,8 +1836,8 @@
         window.requestNotificationPermission = requestNotificationPermission;
 
         // Initialize App on Load
-        window.onload = function() {
-            loadState();
+        window.onload = async function() {
+            await loadState();
             renderDashboard();
 
             // Keyboard Shortcuts
