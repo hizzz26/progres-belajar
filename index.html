@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UT Study Tracker & Scheduler - Maba Sistem Informasi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ut: {
+                            blue: '#003399',
+                            darkblue: '#001a4d',
+                            navy: '#002266',
+                            yellow: '#FFCC00',
+                            lightyellow: '#FFF8D6',
+                            accent: '#2563EB'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .tab-btn.active {
+            background-color: #003399;
+            color: #ffffff;
+            box-shadow: 0 4px 12px -2px rgba(0, 51, 153, 0.3);
+        }
+        .tab-btn.active i {
+            color: #FFCC00;
+        }
+
+        /* Smooth UI Animations */
+        .card-hover {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(0, 51, 153, 0.08);
+        }
+
+        @keyframes toastIn {
+            from { transform: translateY(-100%) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .toast-animate {
+            animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col bg-slate-50 selection:bg-ut-yellow selection:text-ut-darkblue">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-ut-blue text-white sticky top-0 z-30 shadow-md border-b border-ut-navy/40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button id="mobileMenuBtn" onclick="toggleMobileMenu()" class="md:hidden p-2 text-white hover:bg-ut-navy rounded-xl transition" aria-label="Open Menu">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-ut-yellow to-amber-300 text-ut-darkblue font-extrabold flex items-center justify-center text-lg shadow-md border border-white/20">
+                        UT
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-tight flex items-center gap-2">
+                            <span>Study Tracker UT</span>
+                            <span class="text-2xs bg-ut-yellow/20 text-ut-yellow px-2 py-0.5 rounded-full border border-ut-yellow/30 font-semibold hidden sm:inline-block">Maba SI</span>
+                        </h1>
+                        <p class="text-xs text-blue-200 hidden sm:block">Sistem Informasi • Universitas Terbuka</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Header Actions -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="requestNotificationPermission()" id="notifBtn" class="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 rounded-xl transition border border-white/20 text-white backdrop-blur-sm">
+                    <i class="fa-solid fa-bell text-ut-yellow" id="notifIcon"></i>
+                    <span id="notifBtnText" class="hidden sm:inline">Aktifkan Notif</span>
+                </button>
+                <button onclick="openEditProfileModal()" class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold bg-ut-yellow text-ut-darkblue hover:bg-yellow-300 rounded-xl transition shadow-sm border border-yellow-200">
+                    <i class="fa-solid fa-user-pen"></i>
+                    <span class="hidden sm:inline">Edit Profil & Semester</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6 relative">
+
+        <!-- Mobile Drawer Overlay -->
+        <div id="mobileDrawerOverlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="w-full md:w-64 flex-shrink-0 hidden md:block z-40 fixed md:relative top-16 md:top-0 left-0 h-[calc(100vh-4rem)] md:h-auto bg-slate-50 md:bg-transparent p-4 md:p-0 overflow-y-auto custom-scrollbar">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sticky top-20">
+                <!-- Student Profile Card -->
+                <div class="text-center pb-5 border-b border-slate-100">
+                    <div class="relative inline-block mb-3">
+                        <div class="w-20 h-20 bg-gradient-to-tr from-ut-blue via-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white text-2xl font-black border-4 border-white shadow-lg mx-auto">
+                            <span id="userAvatarText">M</span>
+                        </div>
+                        <button onclick="openEditProfileModal()" class="absolute bottom-0 right-0 bg-ut-yellow text-ut-darkblue w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md border-2 border-white hover:scale-110 transition" title="Edit Profil">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                    </div>
+                    <h2 id="displayStudentName" class="font-bold text-slate-800 text-base">Mahasiswa UT</h2>
+                    <p id="displayNimJurusan" class="text-xs text-slate-500 font-medium mt-0.5">Sistem Informasi • Semester 1</p>
+                    
+                    <div class="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                        <span id="displaySemesterBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-ut-blue border border-blue-200">
+                            Semester 1
+                        </span>
+                        <span id="displayTotalSksBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            17 SKS
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="mt-5 space-y-1">
+                    <button onclick="switchTab('dashboard')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3 active">
+                        <i class="fa-solid fa-chart-pie w-5 text-center text-slate-400"></i>
+                        <span>Dashboard & Overview</span>
+                    </button>
+                    <button onclick="switchTab('courses')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-book-bookmark w-5 text-center text-slate-400"></i>
+                        <span>Kelola Matkul & SKS</span>
+                    </button>
+                    <button onclick="switchTab('bmp')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-book-open-reader w-5 text-center text-slate-400"></i>
+                        <span>Modul BMP & Catatan</span>
+                    </button>
+                    <button onclick="switchTab('tuton')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-laptop-code w-5 text-center text-slate-400"></i>
+                        <span>Tuton UT (8 Sesi)</span>
+                    </button>
+                    <button onclick="switchTab('schedule')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-calendar-days w-5 text-center text-slate-400"></i>
+                        <span>Jadwal Belajar</span>
+                    </button>
+                    <button onclick="switchTab('pomodoro')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-stopwatch w-5 text-center text-slate-400"></i>
+                        <span>Timer Belajar Pomodoro</span>
+                    </button>
+                    <button onclick="switchTab('tasks')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-list-check w-5 text-center text-slate-400"></i>
+                        <span>Tugas & Deadline</span>
+                    </button>
+                    <button onclick="switchTab('gpa')" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-100 transition flex items-center gap-3">
+                        <i class="fa-solid fa-calculator w-5 text-center text-slate-400"></i>
+                        <span>Kalkulator IPK</span>
+                    </button>
+                </nav>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                    <button onclick="openEditProfileModal()" class="w-full py-2 px-3 text-xs font-bold text-ut-blue bg-blue-50 hover:bg-blue-100/80 rounded-xl transition border border-blue-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Pengaturan Semester</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 min-w-0">
+            
+            <!-- SECTION 1: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <!-- Welcome Banner -->
+                <div class="bg-gradient-to-r from-ut-blue via-blue-800 to-indigo-900 rounded-3xl p-6 sm:p-7 text-white shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-ut-yellow/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="relative z-10">
+                        <span class="px-3 py-1 bg-ut-yellow text-ut-darkblue font-extrabold text-2xs rounded-full uppercase tracking-wider mb-2.5 inline-block shadow-sm">
+                            Mahasiswa Baru UT
+                        </span>
+                        <h2 class="text-xl sm:text-2xl font-black tracking-tight">Semangat Belajar, <span id="bannerStudentName">Maba SI</span>! 🎉</h2>
+                        <p class="text-blue-100 text-xs sm:text-sm mt-1.5 max-w-xl leading-relaxed">
+                            Kamu mendaftar <span id="bannerCourseCount" class="font-bold text-ut-yellow">6</span> mata kuliah dengan total <span id="bannerTotalSks" class="font-bold text-ut-yellow">17</span> SKS di <span id="bannerSemester" class="font-bold">Semester 1</span>. Pantau modul dan keaktifan Tutonmu di sini!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Metrics Overview Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm card-hover">
+                        <div class="flex items-center justify-between text-slate-500 mb-2">
+                            <span class="text-2xs font-bold uppercase tracking-wider">Total Matkul</span>
+                            <div class="w-8 h-8 rounded-xl bg-blue-50 text-ut-blue flex items-center justify-center">
+                                <i class="fa-solid fa-book"></i>
+                            </div>
+                        </div>
+                        <p id="metricTotalCourses" class="text-2xl sm:text-3xl font-black text-slate-800">6</p>
+                        <p id="metricTotalSksText" class="text-xs text-slate-500 font-medium mt-1">17 Total SKS</p>
+                    </div>
+
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm card-hover">
+                        <div class="flex items-center justify-between text-slate-500 mb-2">
+                            <span class="text-2xs font-bold uppercase tracking-wider">Modul Dibaca</span>
+                            <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <i class="fa-solid fa-book-open"></i>
+                            </div>
+                        </div>
+                        <p id="metricBmpReadPercent" class="text-2xl sm:text-3xl font-black text-slate-800">0%</p>
+                        <div class="w-full bg-slate-100 h-2 rounded-full mt-2.5 overflow-hidden">
+                            <div id="metricBmpBar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm card-hover">
+                        <div class="flex items-center justify-between text-slate-500 mb-2">
+                            <span class="text-2xs font-bold uppercase tracking-wider">Progress Tuton</span>
+                            <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                <i class="fa-solid fa-check-double"></i>
+                            </div>
+                        </div>
+                        <p id="metricTutonPercent" class="text-2xl sm:text-3xl font-black text-slate-800">0%</p>
+                        <div class="w-full bg-slate-100 h-2 rounded-full mt-2.5 overflow-hidden">
+                            <div id="metricTutonBar" class="bg-indigo-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm card-hover">
+                        <div class="flex items-center justify-between text-slate-500 mb-2">
+                            <span class="text-2xs font-bold uppercase tracking-wider">Target IPK</span>
+                            <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                        </div>
+                        <p id="metricTargetIpk" class="text-2xl sm:text-3xl font-black text-slate-800">3.80</p>
+                        <p class="text-2xs text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-trend-up"></i>
+                            <span>Pertahankan Nilai</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Course Progress Overview Grid -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-black text-slate-800 text-lg tracking-tight">Ringkasan Mata Kuliah Kamu</h3>
+                        <button onclick="switchTab('courses')" class="text-xs font-bold text-ut-blue hover:text-ut-darkblue hover:underline flex items-center gap-1">
+                            <span>Kelola Matkul</span>
+                            <i class="fa-solid fa-arrow-right text-2xs"></i>
+                        </button>
+                    </div>
+                    <div id="dashboardCoursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Dynamic Course Cards rendered via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: KELOLA MATA KULIAH & SKS -->
+            <section id="tab-courses" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Kelola Mata Kuliah & SKS</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Tambah, edit nama/kode/SKS, atau hapus matkul sesuai registrasi UT kamu.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openAddCourseModal()" class="px-4 py-2.5 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Tambah Matkul Baru</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Course List Grid -->
+                <div id="courseManagerList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Dynamic List Rendered via JS -->
+                </div>
+            </section>
+
+            <!-- SECTION 3: MODUL BMP & CATATAN RINGKASAN -->
+            <section id="tab-bmp" class="tab-content hidden space-y-6">
+                <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Pelacak Modul BMP & Catatan Ringkasan</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Tandai Modul 1 s/d N yang sudah kamu pelajari, catat halaman dibaca, dan tulis poin penting per matkul.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Select Course Dropdown -->
+                    <div class="max-w-md pt-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Pilih Mata Kuliah BMP:</label>
+                        <select id="bmpCourseSelect" onchange="renderBmpTracker()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                            <!-- Options populated via JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Active BMP Reading Card & Notes -->
+                <div id="bmpTrackerDetail" class="space-y-6">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </section>
+
+            <!-- SECTION 4: TUTON UT (8 SESI) -->
+            <section id="tab-tuton" class="tab-content hidden space-y-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Monitoring Tuton UT (Sesi 1–8)</h2>
+                            <p class="text-xs text-slate-500 mt-1">Centang Kehadiran Diskusi 1-8 dan Unggah Tugas 1, 2, 3 (muncul di Sesi 3, 5, 7) agar tidak terlewat deadline!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tuton Course List -->
+                <div id="tutonCoursesList" class="space-y-4">
+                    <!-- Rendered dynamically via JS -->
+                </div>
+            </section>
+
+            <!-- SECTION 5: JADWAL BELAJAR MINGGUAN -->
+            <section id="tab-schedule" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Jadwal Belajar Mandiri</h2>
+                        <p class="text-xs text-slate-500 mt-1">Atur jam belajar rutin tiap hari agar target membaca BMP & Diskusi Tuton tercapai.</p>
+                    </div>
+                    <button onclick="openAddScheduleModal()" class="px-4 py-2.5 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                        <span>Tambah Sesi Belajar</span>
+                    </button>
+                </div>
+
+                <!-- Weekly Schedule Days Grid -->
+                <div id="weeklyScheduleGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Days Rendered via JS -->
+                </div>
+            </section>
+
+            <!-- SECTION 6: POMODORO FOCUS TIMER -->
+            <section id="tab-pomodoro" class="tab-content hidden space-y-6">
+                <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm text-center max-w-xl mx-auto space-y-5">
+                    <span class="px-3.5 py-1 bg-amber-100 text-amber-900 text-2xs font-extrabold rounded-full uppercase tracking-wider inline-block">
+                        Teknik Pomodoro Focus
+                    </span>
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tight">Timer Fokus Belajar Modul</h2>
+                    <p class="text-xs text-slate-500 leading-relaxed">Fokus belajar intensif selama 25 menit, diikuti istirahat singkat 5 menit untuk menjaga kesegaran otak.</p>
+
+                    <!-- Select Course for Pomodoro -->
+                    <div class="text-left bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Mata Kuliah Yang Dipelajari:</label>
+                        <select id="pomoCourseSelect" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none">
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+
+                    <!-- Timer Circle & Display -->
+                    <div class="my-6 flex flex-col items-center justify-center">
+                        <div class="w-52 h-52 rounded-full border-8 border-ut-blue/20 flex items-center justify-center bg-slate-50/50 relative shadow-inner">
+                            <span id="timerDisplay" class="text-4xl font-black text-ut-darkblue tracking-wider font-mono">25:00</span>
+                        </div>
+                        <p id="timerStatusLabel" class="text-xs font-extrabold text-slate-500 uppercase tracking-widest mt-4">Siap Fokus</p>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="flex items-center justify-center gap-3">
+                        <button id="startTimerBtn" onclick="togglePomodoroTimer()" class="px-8 py-3 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl font-extrabold text-xs transition shadow-md w-36 uppercase tracking-wider">
+                            Start
+                        </button>
+                        <button onclick="resetPomodoroTimer()" class="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition">
+                            Reset
+                        </button>
+                    </div>
+
+                    <!-- Session Stats -->
+                    <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-around text-xs text-slate-500">
+                        <div>
+                            <span class="block text-xl font-black text-slate-800" id="pomoCompletedCount">0</span>
+                            Sesi Selesai
+                        </div>
+                        <div class="h-8 w-px bg-slate-200"></div>
+                        <div>
+                            <span class="block text-xl font-black text-slate-800" id="pomoTotalMinutes">0 min</span>
+                            Total Waktu Fokus
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 7: TUGAS & DEADLINE -->
+            <section id="tab-tasks" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Manajer Tugas & Deadline UT</h2>
+                        <p class="text-xs text-slate-500 mt-1">Catat Tugas Tuton 1, 2, 3 atau Tugas Praktikum agar tidak terlambat unggah di LMS UT.</p>
+                    </div>
+                    <button onclick="openAddTaskModal()" class="px-4 py-2.5 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Tambah Tugas Baru</span>
+                    </button>
+                </div>
+
+                <!-- Task Filter & List -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div id="taskList" class="space-y-2">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 8: KALKULATOR TARGET IPK -->
+            <section id="tab-gpa" class="tab-content hidden space-y-6">
+                <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Kalkulator Estimasi IPK Semester</h2>
+                        <p class="text-xs text-slate-500 mt-1">Simulasikan target nilai per mata kuliah untuk mencapai IPK impianmu!</p>
+                    </div>
+
+                    <div id="gpaSimulatorList" class="space-y-3">
+                        <!-- Dynamic Grade Simulator -->
+                    </div>
+
+                    <div class="mt-6 p-5 bg-ut-lightyellow border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                        <div class="text-center sm:text-left">
+                            <span class="text-2xs font-extrabold text-amber-900 uppercase tracking-wider">Hasil Estimasi IPK:</span>
+                            <p id="calculatedIpkVal" class="text-4xl font-black text-ut-darkblue mt-0.5">0.00</p>
+                        </div>
+                        <div class="text-center sm:text-right">
+                            <p class="text-xs text-slate-600 font-medium">Target Kamu: <span id="gpaTargetValueText" class="font-bold text-slate-800">3.80</span></p>
+                            <span id="gpaStatusBadge" class="inline-block mt-1.5 px-3 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800">
+                                Di Atas Target! 🎉
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL DIALOGS -->
+
+    <!-- MODAL 1: EDIT PROFIL & SEMESTER -->
+    <div id="editProfileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-user-pen text-ut-blue"></i>
+                    Edit Profil & Semester UT
+                </h3>
+                <button onclick="closeModal('editProfileModal')" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <form id="editProfileForm" onsubmit="saveProfileChanges(event)" class="space-y-3 text-xs sm:text-sm">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nama Mahasiswa:</label>
+                    <input type="text" id="inputProfileName" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">NIM (Opsional):</label>
+                        <input type="text" id="inputProfileNim" placeholder="04XXXXXXXX" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Semester Saat Ini:</label>
+                        <select id="inputProfileSemester" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
+                            <option value="7">Semester 7</option>
+                            <option value="8">Semester 8</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Program Studi / Jurusan:</label>
+                    <input type="text" id="inputProfileJurusan" value="Sistem Informasi" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Target IPK Semester Ini:</label>
+                    <input type="number" step="0.01" min="1.00" max="4.00" id="inputProfileTargetIpk" value="3.80" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-bold">
+                </div>
+
+                <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('editProfileModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl font-bold transition shadow-sm">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: TAMBAH / EDIT MATA KULIAH & SKS -->
+    <div id="courseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="courseModalTitle" class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-ut-blue"></i>
+                    Tambah Mata Kuliah UT
+                </h3>
+                <button onclick="closeModal('courseModal')" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="courseForm" onsubmit="saveCourse(event)" class="space-y-3 text-xs sm:text-sm">
+                <input type="hidden" id="editCourseId">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Kode Matkul:</label>
+                    <input type="text" id="inputCourseCode" placeholder="contoh: MSIM4101" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl uppercase font-bold focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Nama Mata Kuliah:</label>
+                    <input type="text" id="inputCourseName" placeholder="contoh: Pengantar Sistem Informasi" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Jumlah SKS:</label>
+                        <select id="inputCourseSks" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                            <option value="1">1 SKS</option>
+                            <option value="2">2 SKS</option>
+                            <option value="3" selected>3 SKS</option>
+                            <option value="4">4 SKS</option>
+                            <option value="6">6 SKS</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Jumlah Modul BMP:</label>
+                        <input type="number" id="inputCourseModules" min="1" max="20" value="9" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Estimasi Total Halaman BMP:</label>
+                    <input type="number" id="inputCourseTotalPages" min="50" max="2000" value="350" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                </div>
+
+                <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('courseModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl font-bold transition shadow-sm">
+                        Simpan Matkul
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: TAMBAH JADWAL BELAJAR -->
+    <div id="scheduleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-plus text-ut-blue"></i>
+                    Tambah Sesi Belajar
+                </h3>
+                <button onclick="closeModal('scheduleModal')" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="scheduleForm" onsubmit="saveSchedule(event)" class="space-y-3 text-xs sm:text-sm">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Hari Belajar:</label>
+                    <select id="inputSchedDay" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                        <option value="Senin">Senin</option>
+                        <option value="Selasa">Selasa</option>
+                        <option value="Rabu">Rabu</option>
+                        <option value="Kamis">Kamis</option>
+                        <option value="Jumat">Jumat</option>
+                        <option value="Sabtu">Sabtu</option>
+                        <option value="Minggu">Minggu</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Mata Kuliah:</label>
+                    <select id="inputSchedCourseId" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Jam Mulai:</label>
+                        <input type="time" id="inputSchedTimeStart" value="19:00" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Jam Selesai:</label>
+                        <input type="time" id="inputSchedTimeEnd" value="21:00" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Aktivitas / Target Sesi:</label>
+                    <input type="text" id="inputSchedActivity" placeholder="contoh: Baca Modul 2 & Diskusi Tuton" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                </div>
+
+                <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('scheduleModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl font-bold transition shadow-sm">
+                        Simpan Sesi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: TAMBAH TUGAS -->
+    <div id="taskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-ut-blue"></i>
+                    Tambah Tugas UT Baru
+                </h3>
+                <button onclick="closeModal('taskModal')" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="taskForm" onsubmit="saveTask(event)" class="space-y-3 text-xs sm:text-sm">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Mata Kuliah:</label>
+                    <select id="inputTaskCourseId" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Judul / Sesi Tugas:</label>
+                    <input type="text" id="inputTaskTitle" placeholder="contoh: Tugas 1 (Sesi 3) - Analisis Kasus" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Tanggal & Jam Deadline:</label>
+                    <input type="datetime-local" id="inputTaskDueDate" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-ut-blue focus:outline-none font-semibold">
+                </div>
+
+                <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('taskModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl font-bold transition shadow-sm">
+                        Simpan Tugas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        // Default State Data
+        const DEFAULT_COURSES = [
+            { id: 'c1', code: 'MSIM4101', name: 'Pengantar Sistem Informasi', sks: 3, modules: 9, readPages: 45, totalPages: 320, completedModules: [true, false, false, false, false, false, false, false, false], notes: { text: 'Modul 1: Pengertian SI, Komponen Hardware, Software, Brainware.' }, tuton: { discussions: [true, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
+            { id: 'c2', code: 'MSIM4102', name: 'Algoritma & Pemrograman', sks: 3, modules: 9, readPages: 60, totalPages: 350, completedModules: [true, true, false, false, false, false, false, false, false], notes: { text: 'Modul 1 & 2: Pseudo-code, Flowchart, Tipe Data & Control Flow.' }, tuton: { discussions: [true, true, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
+            { id: 'c3', code: 'MSIM4103', name: 'Logika Matematika', sks: 3, modules: 9, readPages: 20, totalPages: 280, completedModules: [false, false, false, false, false, false, false, false, false], notes: { text: '' }, tuton: { discussions: [false, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A-' },
+            { id: 'c4', code: 'MKWU4101', name: 'Pancasila', sks: 2, modules: 6, readPages: 80, totalPages: 200, completedModules: [true, true, true, false, false, false], notes: { text: '' }, tuton: { discussions: [true, true, true, false, false, false, false, false], tasks: [true, false, false] }, gpaGrade: 'A' },
+            { id: 'c5', code: 'MKWU4108', name: 'Bahasa Indonesia', sks: 3, modules: 9, readPages: 90, totalPages: 300, completedModules: [true, false, false, false, false, false, false, false, false], notes: { text: '' }, tuton: { discussions: [true, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
+            { id: 'c6', code: 'MSIM4104', name: 'Basis Data', sks: 3, modules: 9, readPages: 30, totalPages: 310, completedModules: [false, false, false, false, false, false, false, false, false], notes: { text: '' }, tuton: { discussions: [false, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'B+' }
+        ];
+
+        const DEFAULT_SCHEDULES = [
+            { id: 's1', day: 'Senin', courseId: 'c1', startTime: '19:00', endTime: '21:00', activity: 'Baca Modul 1 BMP & Diskusi Sesi 1' },
+            { id: 's2', day: 'Rabu', courseId: 'c2', startTime: '19:30', endTime: '21:30', activity: 'Latihan Coding Modul 2' },
+            { id: 's3', day: 'Jumat', courseId: 'c3', startTime: '20:00', endTime: '22:00', activity: 'Latihan Soal Logika Predikat' },
+            { id: 's4', day: 'Sabtu', courseId: 'c4', startTime: '14:00', endTime: '16:00', activity: 'Diskusi Tuton Sesi 3 & Unggah Tugas 1' }
+        ];
+
+        const DEFAULT_TASKS = [
+            { id: 't1', courseId: 'c1', title: 'Tugas 1 Tuton Sesi 3 - Analisis SI', dueDate: '2026-09-15T23:59', completed: false },
+            { id: 't2', courseId: 'c2', title: 'Tugas 1 Tuton Sesi 3 - Flowchart & Coding', dueDate: '2026-09-18T23:59', completed: false }
+        ];
+
+        let state = {
+            profile: {
+                name: 'Mahasiswa Baru UT',
+                nim: '041234567',
+                jurusan: 'Sistem Informasi',
+                semester: 1,
+                targetIpk: 3.80
+            },
+            courses: DEFAULT_COURSES,
+            schedules: DEFAULT_SCHEDULES,
+            tasks: DEFAULT_TASKS,
+            pomoStats: { completed: 0, totalMinutes: 0 }
+        };
+
+        // Custom Toast UI
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-slate-900 text-white' : 'bg-rose-600 text-white';
+            const icon = type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-triangle-exclamation text-amber-300';
+
+            toast.className = `${bgColor} p-3.5 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold toast-animate pointer-events-auto border border-white/10`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-base"></i>
+                <span class="flex-1">${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Local Storage Sync
+        function loadState() {
+            try {
+                const savedProfile = localStorage.getItem('ut_profile');
+                if (savedProfile) state.profile = JSON.parse(savedProfile);
+
+                const savedCourses = localStorage.getItem('ut_courses');
+                if (savedCourses) state.courses = JSON.parse(savedCourses);
+
+                const savedSchedules = localStorage.getItem('ut_schedules');
+                if (savedSchedules) state.schedules = JSON.parse(savedSchedules);
+
+                const savedTasks = localStorage.getItem('ut_tasks');
+                if (savedTasks) state.tasks = JSON.parse(savedTasks);
+
+                const savedPomo = localStorage.getItem('ut_pomo');
+                if (savedPomo) state.pomoStats = JSON.parse(savedPomo);
+
+                // Ensure data structure validity
+                state.courses.forEach(c => {
+                    const modCount = parseInt(c.modules) || 9;
+                    if (!c.completedModules || !Array.isArray(c.completedModules) || c.completedModules.length !== modCount) {
+                        c.completedModules = Array(modCount).fill(false);
+                    }
+                });
+            } catch (e) {
+                console.error("Local storage load error", e);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('ut_profile', JSON.stringify(state.profile));
+                localStorage.setItem('ut_courses', JSON.stringify(state.courses));
+                localStorage.setItem('ut_schedules', JSON.stringify(state.schedules));
+                localStorage.setItem('ut_tasks', JSON.stringify(state.tasks));
+                localStorage.setItem('ut_pomo', JSON.stringify(state.pomoStats));
+            } catch (e) {
+                console.error("Local storage save error", e);
+            }
+        }
+
+        // Navigation Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if (targetTab) targetTab.classList.remove('hidden');
+
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick')?.includes(`'${tabId}'`)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Close Mobile Menu Drawer on selection
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileDrawerOverlay');
+            if (window.innerWidth < 768) {
+                sidebar.classList.add('hidden');
+                overlay.classList.add('hidden');
+            }
+
+            // Render Tab Specific UI
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'courses') renderCoursesManager();
+            if (tabId === 'bmp') renderBmpTracker();
+            if (tabId === 'tuton') renderTutonTracker();
+            if (tabId === 'schedule') renderWeeklySchedule();
+            if (tabId === 'pomodoro') renderPomodoroTab();
+            if (tabId === 'tasks') renderTaskList();
+            if (tabId === 'gpa') renderGpaCalculator();
+        }
+
+        function getTotalSks() {
+            return state.courses.reduce((sum, c) => sum + (parseInt(c.sks) || 0), 0);
+        }
+
+        // Render Student Profile Headers & Badges
+        function renderProfileInfo() {
+            const totalSks = getTotalSks();
+            document.getElementById('displayStudentName').innerText = state.profile.name;
+            document.getElementById('displayNimJurusan').innerText = `${state.profile.jurusan} • Semester ${state.profile.semester}`;
+            document.getElementById('displaySemesterBadge').innerText = `Semester ${state.profile.semester}`;
+            document.getElementById('displayTotalSksBadge').innerText = `${totalSks} SKS`;
+            document.getElementById('userAvatarText').innerText = state.profile.name.charAt(0).toUpperCase();
+
+            // Dashboard Banners
+            document.getElementById('bannerStudentName').innerText = state.profile.name;
+            document.getElementById('bannerCourseCount').innerText = state.courses.length;
+            document.getElementById('bannerTotalSks').innerText = totalSks;
+            document.getElementById('bannerSemester').innerText = `Semester ${state.profile.semester}`;
+            
+            // Metrics
+            document.getElementById('metricTotalCourses').innerText = state.courses.length;
+            document.getElementById('metricTotalSksText').innerText = `${totalSks} Total SKS`;
+            document.getElementById('metricTargetIpk').innerText = parseFloat(state.profile.targetIpk).toFixed(2);
+            document.getElementById('gpaTargetValueText').innerText = parseFloat(state.profile.targetIpk).toFixed(2);
+        }
+
+        // Render Dashboard Overview
+        function renderDashboard() {
+            renderProfileInfo();
+
+            let totalModulesAll = 0;
+            let completedModulesAll = 0;
+            let tutonTotalCount = 0;
+            let tutonDoneCount = 0;
+
+            state.courses.forEach(c => {
+                const numMods = parseInt(c.modules) || 9;
+                totalModulesAll += numMods;
+                
+                if (c.completedModules && Array.isArray(c.completedModules)) {
+                    completedModulesAll += c.completedModules.filter(Boolean).length;
+                }
+
+                if (c.tuton) {
+                    tutonTotalCount += 8 + 3; // 8 discussions + 3 tasks
+                    c.tuton.discussions.forEach(d => { if (d) tutonDoneCount++; });
+                    c.tuton.tasks.forEach(t => { if (t) tutonDoneCount++; });
+                }
+            });
+
+            const bmpPercent = totalModulesAll > 0 ? Math.round((completedModulesAll / totalModulesAll) * 100) : 0;
+            const tutonPercent = tutonTotalCount > 0 ? Math.round((tutonDoneCount / tutonTotalCount) * 100) : 0;
+
+            document.getElementById('metricBmpReadPercent').innerText = `${bmpPercent}%`;
+            document.getElementById('metricBmpBar').style.width = `${bmpPercent}%`;
+
+            document.getElementById('metricTutonPercent').innerText = `${tutonPercent}%`;
+            document.getElementById('metricTutonBar').style.width = `${tutonPercent}%`;
+
+            // Render Course Cards
+            const grid = document.getElementById('dashboardCoursesGrid');
+            grid.innerHTML = '';
+
+            state.courses.forEach(c => {
+                const numMods = parseInt(c.modules) || 9;
+                const completedCount = c.completedModules ? c.completedModules.filter(Boolean).length : 0;
+                const courseBmpPct = Math.round((completedCount / numMods) * 100);
+
+                let courseTutonDone = 0;
+                if (c.tuton) {
+                    c.tuton.discussions.forEach(d => { if (d) courseTutonDone++; });
+                    c.tuton.tasks.forEach(t => { if (t) courseTutonDone++; });
+                }
+                const courseTutonPct = Math.round((courseTutonDone / 11) * 100);
+
+                const cardHtml = `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <span class="text-xs font-black px-2.5 py-1 rounded-lg bg-blue-50 text-ut-blue border border-blue-200">${c.code}</span>
+                                <span class="text-xs font-extrabold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">${c.sks} SKS</span>
+                            </div>
+                            <h4 class="font-bold text-slate-800 text-sm mt-2 line-clamp-1">${c.name}</h4>
+                        </div>
+
+                        <div class="mt-4 space-y-3 text-xs">
+                            <div>
+                                <div class="flex justify-between text-slate-500 mb-1">
+                                    <span class="font-semibold">BMP (${completedCount}/${numMods} Modul)</span>
+                                    <span class="font-bold text-slate-700">${courseBmpPct}%</span>
+                                </div>
+                                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${courseBmpPct}%"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-slate-500 mb-1">
+                                    <span class="font-semibold">Keaktifan Tuton</span>
+                                    <span class="font-bold text-slate-700">${courseTutonPct}%</span>
+                                </div>
+                                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-indigo-600 h-full rounded-full transition-all duration-300" style="width: ${courseTutonPct}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        // Render Course Manager Tab
+        function renderCoursesManager() {
+            const list = document.getElementById('courseManagerList');
+            list.innerHTML = '';
+
+            state.courses.forEach(c => {
+                const item = `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black px-2.5 py-1 rounded-lg bg-blue-50 text-ut-blue border border-blue-200">${c.code}</span>
+                                <span class="text-xs font-extrabold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200">${c.sks} SKS</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-base mt-2">${c.name}</h3>
+                            
+                            <div class="mt-3 text-xs text-slate-500 space-y-1.5">
+                                <p class="flex items-center gap-2"><i class="fa-solid fa-book-open text-slate-400 w-4"></i> <span>${c.modules} Modul BMP (${c.totalPages} Halaman)</span></p>
+                                <p class="flex items-center gap-2"><i class="fa-solid fa-laptop text-slate-400 w-4"></i> <span>Tuton Sesi 1–8 Active</span></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                            <button onclick="editCourse('${c.id}')" class="px-3 py-1.5 text-xs font-bold text-ut-blue hover:bg-blue-50 rounded-xl transition border border-blue-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-pen"></i> Edit Matkul
+                            </button>
+                            <button onclick="deleteCourse('${c.id}')" class="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition border border-rose-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-trash"></i> Hapus
+                            </button>
+                        </div>
+                    </div>
+                `;
+                list.insertAdjacentHTML('beforeend', item);
+            });
+        }
+
+        // Render BMP Tracker (Modul 1 s/d N Checklist + Notes)
+        function renderBmpTracker() {
+            const select = document.getElementById('bmpCourseSelect');
+            const currentSelectedVal = select.value;
+            select.innerHTML = '';
+
+            state.courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `${c.code} - ${c.name}`;
+                if (c.id === currentSelectedVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            if (state.courses.length === 0) return;
+
+            const activeCourseId = select.value || state.courses[0].id;
+            const course = state.courses.find(c => c.id === activeCourseId);
+            if (!course) return;
+
+            const numModules = parseInt(course.modules) || 9;
+            if (!course.completedModules || course.completedModules.length !== numModules) {
+                course.completedModules = Array(numModules).fill(false);
+            }
+
+            const completedCount = course.completedModules.filter(Boolean).length;
+            const modulePercent = Math.round((completedCount / numModules) * 100);
+
+            let moduleGridHtml = '';
+            for (let i = 0; i < numModules; i++) {
+                const isChecked = course.completedModules[i];
+                moduleGridHtml += `
+                    <button type="button" onclick="toggleModuleDone('${course.id}', ${i})" 
+                            class="p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between group ${isChecked ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-6 h-6 rounded-lg flex items-center justify-center border ${isChecked ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-300 text-transparent'}">
+                                <i class="fa-solid fa-check text-2xs"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold block">Modul ${i + 1}</span>
+                                <span class="text-2xs ${isChecked ? 'text-emerald-700 font-semibold' : 'text-slate-400'}">${isChecked ? 'Selesai Dibaca' : 'Belum Dibaca'}</span>
+                            </div>
+                        </div>
+                    </button>
+                `;
+            }
+
+            const detailContainer = document.getElementById('bmpTrackerDetail');
+            detailContainer.innerHTML = `
+                <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
+                    <!-- Course BMP Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                        <div>
+                            <span class="text-xs font-black text-ut-blue uppercase tracking-wider">${course.code} • ${course.sks} SKS</span>
+                            <h3 class="text-xl font-extrabold text-slate-800 tracking-tight">${course.name}</h3>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <span class="text-3xl font-black text-emerald-600">${modulePercent}%</span>
+                            <p class="text-xs text-slate-500 font-medium">${completedCount} dari ${numModules} Modul Selesai</p>
+                        </div>
+                    </div>
+
+                    <!-- Checklist Modul 1 s/d N -->
+                    <div>
+                        <h4 class="font-extrabold text-slate-800 text-sm mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-emerald-600"></i>
+                            Checklist Modul BMP (1 s/d ${numModules})
+                        </h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+                            ${moduleGridHtml}
+                        </div>
+                    </div>
+
+                    <!-- Page Progress Tracker -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                            <span>Detail Halaman Dibaca:</span>
+                            <span class="text-slate-500">${course.readPages} / ${course.totalPages} Halaman</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="number" id="bmpPageInput" value="${course.readPages}" min="0" max="${course.totalPages}" class="w-32 px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold focus:ring-2 focus:ring-ut-blue focus:outline-none">
+                            <button onclick="updateBmpProgress('${course.id}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition shadow-sm">
+                                <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Halaman
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Module Notes Editor -->
+                    <div>
+                        <h4 class="font-extrabold text-slate-800 text-sm mb-1.5 flex items-center gap-2">
+                            <i class="fa-solid fa-note-sticky text-ut-yellow"></i>
+                            Catatan Poin-Poin Penting BMP
+                        </h4>
+                        <p class="text-xs text-slate-500 mb-3">Tuliskan ringkasan materi atau istilah penting dari BMP untuk persiapan UAS & Tuton.</p>
+                        <textarea id="bmpNotesArea" rows="5" placeholder="Tuliskan poin penting modul di sini..." class="w-full p-4 text-xs sm:text-sm border border-slate-300 rounded-2xl focus:ring-2 focus:ring-ut-blue focus:outline-none leading-relaxed font-sans">${course.notes?.text || ''}</textarea>
+                        <div class="mt-3 text-right">
+                            <button onclick="saveBmpNotes('${course.id}')" class="px-5 py-2.5 bg-ut-blue hover:bg-ut-darkblue text-white font-bold text-xs rounded-xl transition shadow-sm">
+                                Simpan Catatan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleModuleDone(courseId, index) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            const numMods = parseInt(course.modules) || 9;
+            if (!course.completedModules || course.completedModules.length !== numMods) {
+                course.completedModules = Array(numMods).fill(false);
+            }
+
+            course.completedModules[index] = !course.completedModules[index];
+            saveState();
+            renderBmpTracker();
+            renderDashboard();
+        }
+
+        function updateBmpProgress(courseId) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            const val = parseInt(document.getElementById('bmpPageInput').value) || 0;
+            course.readPages = Math.min(val, course.totalPages);
+            saveState();
+            showToast("Progress halaman berhasil disimpan!");
+            renderDashboard();
+            renderBmpTracker();
+        }
+
+        function saveBmpNotes(courseId) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            if (!course.notes) course.notes = {};
+            course.notes.text = document.getElementById('bmpNotesArea').value;
+            saveState();
+            showToast("Catatan modul berhasil disimpan!");
+        }
+
+        // Tuton 8 Sesi Tracker
+        function renderTutonTracker() {
+            const container = document.getElementById('tutonCoursesList');
+            container.innerHTML = '';
+
+            state.courses.forEach(c => {
+                if (!c.tuton) c.tuton = { discussions: Array(8).fill(false), tasks: Array(3).fill(false) };
+
+                let discDone = c.tuton.discussions.filter(Boolean).length;
+                let taskDone = c.tuton.tasks.filter(Boolean).length;
+
+                let discussionsHtml = '';
+                for (let i = 0; i < 8; i++) {
+                    const isChecked = c.tuton.discussions[i];
+                    discussionsHtml += `
+                        <label class="flex items-center gap-2 p-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-200/80 cursor-pointer text-xs select-none">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleTutonDisc('${c.id}', ${i})" class="w-4 h-4 text-ut-blue rounded focus:ring-ut-blue">
+                            <span class="${isChecked ? 'line-through text-slate-400 font-medium' : 'font-bold text-slate-700'}">Sesi ${i+1}</span>
+                        </label>
+                    `;
+                }
+
+                let tasksHtml = '';
+                const taskSessions = [3, 5, 7];
+                for (let i = 0; i < 3; i++) {
+                    const isChecked = c.tuton.tasks[i];
+                    tasksHtml += `
+                        <label class="flex items-center gap-2 p-3 bg-amber-50 hover:bg-amber-100/80 rounded-xl border border-amber-200 cursor-pointer text-xs select-none">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleTutonTask('${c.id}', ${i})" class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500">
+                            <span class="${isChecked ? 'line-through text-amber-600 font-medium' : 'font-extrabold text-amber-900'}">Tugas ${i+1} (Sesi ${taskSessions[i]})</span>
+                        </label>
+                    `;
+                }
+
+                const cardHtml = `
+                    <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div>
+                                <span class="text-xs font-black px-2.5 py-0.5 rounded bg-blue-50 text-ut-blue border border-blue-200">${c.code}</span>
+                                <h3 class="font-extrabold text-slate-800 text-base mt-1">${c.name}</h3>
+                            </div>
+                            <div class="text-xs font-bold text-slate-500">
+                                Diskusi: <span class="text-ut-blue font-extrabold">${discDone}/8</span> • Tugas: <span class="text-amber-800 font-extrabold">${taskDone}/3</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-2xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Kehadiran & Diskusi (Sesi 1–8):</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                ${discussionsHtml}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-2xs font-extrabold text-amber-900 uppercase tracking-wider mb-2">Tugas Wajib Tuton (Sesi 3, 5, 7):</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                ${tasksHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        function toggleTutonDisc(courseId, index) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course || !course.tuton) return;
+            course.tuton.discussions[index] = !course.tuton.discussions[index];
+            saveState();
+            renderDashboard();
+        }
+
+        function toggleTutonTask(courseId, index) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course || !course.tuton) return;
+            course.tuton.tasks[index] = !course.tuton.tasks[index];
+            saveState();
+            renderDashboard();
+        }
+
+        // Weekly Schedule
+        function renderWeeklySchedule() {
+            const grid = document.getElementById('weeklyScheduleGrid');
+            grid.innerHTML = '';
+
+            const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+            days.forEach(day => {
+                const daySchedules = state.schedules.filter(s => s.day === day);
+                
+                let schedCardsHtml = '';
+                if (daySchedules.length === 0) {
+                    schedCardsHtml = `<p class="text-xs text-slate-400 italic py-3 text-center">Tidak ada jadwal belajar hari ini.</p>`;
+                } else {
+                    daySchedules.forEach(s => {
+                        const course = state.courses.find(c => c.id === s.courseId);
+                        const courseName = course ? course.name : 'Mata Kuliah';
+
+                        schedCardsHtml += `
+                            <div class="bg-blue-50/80 p-3 rounded-2xl border border-blue-100 text-xs space-y-1 relative group">
+                                <div class="flex items-center justify-between font-extrabold text-ut-blue">
+                                    <span>${s.startTime} - ${s.endTime}</span>
+                                    <button onclick="deleteSchedule('${s.id}')" class="text-slate-400 hover:text-rose-600 transition p-0.5" title="Hapus">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                                <p class="font-bold text-slate-800 line-clamp-1">${courseName}</p>
+                                <p class="text-slate-600 text-2xs">${s.activity}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+                const dayCard = `
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <h3 class="font-bold text-slate-800 text-sm">${day}</h3>
+                            <span class="text-2xs font-extrabold text-slate-400">${daySchedules.length} Sesi</span>
+                        </div>
+                        <div class="space-y-2">
+                            ${schedCardsHtml}
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', dayCard);
+            });
+        }
+
+        // Pomodoro Timer Logic
+        let pomoInterval = null;
+        let pomoSecondsLeft = 25 * 60;
+        let pomoIsRunning = false;
+
+        function renderPomodoroTab() {
+            const select = document.getElementById('pomoCourseSelect');
+            select.innerHTML = '';
+            state.courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `${c.code} - ${c.name}`;
+                select.appendChild(opt);
+            });
+
+            document.getElementById('pomoCompletedCount').innerText = state.pomoStats.completed;
+            document.getElementById('pomoTotalMinutes').innerText = `${state.pomoStats.totalMinutes} min`;
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(pomoSecondsLeft / 60);
+            const secs = pomoSecondsLeft % 60;
+            document.getElementById('timerDisplay').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function togglePomodoroTimer() {
+            const btn = document.getElementById('startTimerBtn');
+            if (pomoIsRunning) {
+                clearInterval(pomoInterval);
+                pomoIsRunning = false;
+                btn.innerText = "Start";
+                btn.classList.replace('bg-rose-600', 'bg-ut-blue');
+                document.getElementById('timerStatusLabel').innerText = "Paused";
+            } else {
+                pomoIsRunning = true;
+                btn.innerText = "Pause";
+                btn.classList.replace('bg-ut-blue', 'bg-rose-600');
+                document.getElementById('timerStatusLabel').innerText = "Fokus Belajar Modul...";
+
+                pomoInterval = setInterval(() => {
+                    pomoSecondsLeft--;
+                    updateTimerDisplay();
+
+                    if (pomoSecondsLeft <= 0) {
+                        clearInterval(pomoInterval);
+                        pomoIsRunning = false;
+                        btn.innerText = "Start";
+                        btn.classList.replace('bg-rose-600', 'bg-ut-blue');
+                        document.getElementById('timerStatusLabel').innerText = "Sesi Selesai!";
+                        
+                        playChimeSound();
+                        showNotification("Timer Pomodoro Selesai!", "Waktunya istirahat 5 menit sebelum lanjut ke modul berikutnya.");
+                        showToast("Sesi Pomodoro Selesai! Selamat!");
+
+                        state.pomoStats.completed++;
+                        state.pomoStats.totalMinutes += 25;
+                        saveState();
+                        renderPomodoroTab();
+
+                        pomoSecondsLeft = 25 * 60;
+                        updateTimerDisplay();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetPomodoroTimer() {
+            clearInterval(pomoInterval);
+            pomoIsRunning = false;
+            pomoSecondsLeft = 25 * 60;
+            updateTimerDisplay();
+            const btn = document.getElementById('startTimerBtn');
+            btn.innerText = "Start";
+            btn.classList.replace('bg-rose-600', 'bg-ut-blue');
+            document.getElementById('timerStatusLabel').innerText = "Siap Fokus";
+        }
+
+        function playChimeSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 1.5);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 1.5);
+            } catch (e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        // Task & Deadline Manager
+        function renderTaskList() {
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+
+            if (state.tasks.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 py-6 text-center italic">Belum ada tugas tercatat. Klik "Tambah Tugas Baru" di atas.</p>`;
+                return;
+            }
+
+            state.tasks.forEach(t => {
+                const course = state.courses.find(c => c.id === t.courseId);
+                const courseCode = course ? course.code : 'UT';
+
+                const dueObj = new Date(t.dueDate);
+                const formattedDate = dueObj.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+                const item = `
+                    <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskDone('${t.id}')" class="w-4 h-4 text-ut-blue rounded">
+                            <div>
+                                <span class="font-extrabold text-2xs px-2 py-0.5 rounded bg-blue-100 text-ut-blue">${courseCode}</span>
+                                <h4 class="font-bold text-slate-800 ${t.completed ? 'line-through text-slate-400' : ''} mt-0.5">${t.title}</h4>
+                                <p class="text-2xs text-rose-600 font-semibold mt-0.5"><i class="fa-regular fa-clock mr-1"></i>Deadline: ${formattedDate}</p>
+                            </div>
+                        </div>
+                        <button onclick="deleteTask('${t.id}')" class="text-slate-400 hover:text-rose-600 transition p-1.5">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                list.insertAdjacentHTML('beforeend', item);
+            });
+        }
+
+        function toggleTaskDone(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                saveState();
+                renderTaskList();
+            }
+        }
+
+        function deleteTask(taskId) {
+            state.tasks = state.tasks.filter(t => t.id !== taskId);
+            saveState();
+            renderTaskList();
+            showToast("Tugas dihapus.");
+        }
+
+        // GPA Calculator
+        function renderGpaCalculator() {
+            const list = document.getElementById('gpaSimulatorList');
+            list.innerHTML = '';
+
+            const gradePoints = { 'A': 4.0, 'A-': 3.7, 'B+': 3.3, 'B': 3.0, 'B-': 2.7, 'C+': 2.3, 'C': 2.0, 'D': 1.0, 'E': 0.0 };
+
+            state.courses.forEach(c => {
+                const currentGrade = c.gpaGrade || 'A';
+                let optionsHtml = '';
+                Object.keys(gradePoints).forEach(g => {
+                    optionsHtml += `<option value="${g}" ${currentGrade === g ? 'selected' : ''}>Nilai ${g} (${gradePoints[g]})</option>`;
+                });
+
+                const row = `
+                    <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs">
+                        <div>
+                            <span class="font-black text-ut-blue">${c.code}</span>
+                            <h4 class="font-bold text-slate-800 line-clamp-1">${c.name}</h4>
+                            <span class="text-2xs text-slate-500 font-semibold">${c.sks} SKS</span>
+                        </div>
+                        <select onchange="updateCourseGrade('${c.id}', this.value)" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-xs focus:outline-none shadow-sm">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                `;
+                list.insertAdjacentHTML('beforeend', row);
+            });
+
+            calculateEstimatedGPA();
+        }
+
+        function updateCourseGrade(courseId, grade) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (course) {
+                course.gpaGrade = grade;
+                saveState();
+                calculateEstimatedGPA();
+            }
+        }
+
+        function calculateEstimatedGPA() {
+            const gradePoints = { 'A': 4.0, 'A-': 3.7, 'B+': 3.3, 'B': 3.0, 'B-': 2.7, 'C+': 2.3, 'C': 2.0, 'D': 1.0, 'E': 0.0 };
+            let totalQualityPoints = 0;
+            let totalSks = 0;
+
+            state.courses.forEach(c => {
+                const sks = parseInt(c.sks) || 0;
+                const pts = gradePoints[c.gpaGrade || 'A'] || 4.0;
+                totalQualityPoints += (pts * sks);
+                totalSks += sks;
+            });
+
+            const gpa = totalSks > 0 ? (totalQualityPoints / totalSks) : 0;
+            document.getElementById('calculatedIpkVal').innerText = gpa.toFixed(2);
+
+            const target = parseFloat(state.profile.targetIpk) || 3.80;
+            const badge = document.getElementById('gpaStatusBadge');
+
+            if (gpa >= target) {
+                badge.innerText = "Di Atas Target! 🎉";
+                badge.className = "inline-block mt-1.5 px-3 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800";
+            } else {
+                badge.innerText = "Di Bawah Target";
+                badge.className = "inline-block mt-1.5 px-3 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-800";
+            }
+        }
+
+        // Modals Operations
+        function openEditProfileModal() {
+            document.getElementById('inputProfileName').value = state.profile.name;
+            document.getElementById('inputProfileNim').value = state.profile.nim || '';
+            document.getElementById('inputProfileSemester').value = state.profile.semester;
+            document.getElementById('inputProfileJurusan').value = state.profile.jurusan;
+            document.getElementById('inputProfileTargetIpk').value = state.profile.targetIpk;
+
+            document.getElementById('editProfileModal').classList.remove('hidden');
+        }
+
+        function saveProfileChanges(e) {
+            e.preventDefault();
+            state.profile.name = document.getElementById('inputProfileName').value;
+            state.profile.nim = document.getElementById('inputProfileNim').value;
+            state.profile.semester = parseInt(document.getElementById('inputProfileSemester').value);
+            state.profile.jurusan = document.getElementById('inputProfileJurusan').value;
+            state.profile.targetIpk = parseFloat(document.getElementById('inputProfileTargetIpk').value);
+
+            saveState();
+            closeModal('editProfileModal');
+            renderDashboard();
+            showToast("Profil & Semester berhasil diperbarui!");
+        }
+
+        function openAddCourseModal() {
+            document.getElementById('editCourseId').value = '';
+            document.getElementById('courseModalTitle').innerText = "Tambah Mata Kuliah UT";
+            document.getElementById('courseForm').reset();
+            document.getElementById('courseModal').classList.remove('hidden');
+        }
+
+        function editCourse(courseId) {
+            const c = state.courses.find(item => item.id === courseId);
+            if (!c) return;
+
+            document.getElementById('editCourseId').value = c.id;
+            document.getElementById('courseModalTitle').innerText = "Edit Mata Kuliah & SKS";
+            document.getElementById('inputCourseCode').value = c.code;
+            document.getElementById('inputCourseName').value = c.name;
+            document.getElementById('inputCourseSks').value = c.sks;
+            document.getElementById('inputCourseModules').value = c.modules;
+            document.getElementById('inputCourseTotalPages').value = c.totalPages;
+
+            document.getElementById('courseModal').classList.remove('hidden');
+        }
+
+        function saveCourse(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editCourseId').value;
+            const code = document.getElementById('inputCourseCode').value.toUpperCase();
+            const name = document.getElementById('inputCourseName').value;
+            const sks = parseInt(document.getElementById('inputCourseSks').value);
+            const modules = parseInt(document.getElementById('inputCourseModules').value);
+            const totalPages = parseInt(document.getElementById('inputCourseTotalPages').value);
+
+            if (editId) {
+                const c = state.courses.find(item => item.id === editId);
+                if (c) {
+                    c.code = code;
+                    c.name = name;
+                    c.sks = sks;
+                    c.modules = modules;
+                    c.totalPages = totalPages;
+                    if (!c.completedModules || c.completedModules.length !== modules) {
+                        c.completedModules = Array(modules).fill(false);
+                    }
+                }
+            } else {
+                const newCourse = {
+                    id: 'c_' + Date.now(),
+                    code, name, sks, modules, readPages: 0, totalPages,
+                    completedModules: Array(modules).fill(false),
+                    notes: {}, tuton: { discussions: Array(8).fill(false), tasks: Array(3).fill(false) },
+                    gpaGrade: 'A'
+                };
+                state.courses.push(newCourse);
+            }
+
+            saveState();
+            closeModal('courseModal');
+            renderDashboard();
+            renderCoursesManager();
+            showToast("Mata kuliah berhasil disimpan!");
+        }
+
+        function deleteCourse(courseId) {
+            if (state.courses.length <= 1) {
+                showToast("Minimal harus ada 1 mata kuliah dalam tracker kamu.", "error");
+                return;
+            }
+
+            state.courses = state.courses.filter(c => c.id !== courseId);
+            saveState();
+            renderDashboard();
+            renderCoursesManager();
+            showToast("Mata kuliah berhasil dihapus.");
+        }
+
+        function openAddScheduleModal() {
+            const select = document.getElementById('inputSchedCourseId');
+            select.innerHTML = '';
+            state.courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `${c.code} - ${c.name}`;
+                select.appendChild(opt);
+            });
+            document.getElementById('scheduleModal').classList.remove('hidden');
+        }
+
+        function saveSchedule(e) {
+            e.preventDefault();
+            const newSched = {
+                id: 's_' + Date.now(),
+                day: document.getElementById('inputSchedDay').value,
+                courseId: document.getElementById('inputSchedCourseId').value,
+                startTime: document.getElementById('inputSchedTimeStart').value,
+                endTime: document.getElementById('inputSchedTimeEnd').value,
+                activity: document.getElementById('inputSchedActivity').value
+            };
+            state.schedules.push(newSched);
+            saveState();
+            closeModal('scheduleModal');
+            renderWeeklySchedule();
+            showToast("Sesi belajar ditambahkan!");
+        }
+
+        function deleteSchedule(id) {
+            state.schedules = state.schedules.filter(s => s.id !== id);
+            saveState();
+            renderWeeklySchedule();
+            showToast("Jadwal belajar dihapus.");
+        }
+
+        function openAddTaskModal() {
+            const select = document.getElementById('inputTaskCourseId');
+            select.innerHTML = '';
+            state.courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `${c.code} - ${c.name}`;
+                select.appendChild(opt);
+            });
+            document.getElementById('taskModal').classList.remove('hidden');
+        }
+
+        function saveTask(e) {
+            e.preventDefault();
+            const newTask = {
+                id: 't_' + Date.now(),
+                courseId: document.getElementById('inputTaskCourseId').value,
+                title: document.getElementById('inputTaskTitle').value,
+                dueDate: document.getElementById('inputTaskDueDate').value,
+                completed: false
+            };
+            state.tasks.push(newTask);
+            saveState();
+            closeModal('taskModal');
+            renderTaskList();
+            showToast("Tugas baru ditambahkan!");
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileDrawerOverlay');
+            sidebar.classList.toggle('hidden');
+            overlay.classList.toggle('hidden');
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                showToast("Browser kamu tidak mendukung notifikasi web.", "error");
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    document.getElementById('notifBtnText').innerText = "Notif Aktif";
+                    showNotification("Notifikasi UT Tracker Aktif", "Kamu akan menerima pengingat jadwal & deadline!");
+                    showToast("Notifikasi web berhasil diaktifkan!");
+                }
+            });
+        }
+
+        function showNotification(title, body) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body, icon: 'https://placehold.co/100x100/003399/ffffff?text=UT' });
+            }
+        }
+
+        // Global Window Exposures
+        window.switchTab = switchTab;
+        window.openEditProfileModal = openEditProfileModal;
+        window.saveProfileChanges = saveProfileChanges;
+        window.openAddCourseModal = openAddCourseModal;
+        window.editCourse = editCourse;
+        window.saveCourse = saveCourse;
+        window.deleteCourse = deleteCourse;
+        window.toggleModuleDone = toggleModuleDone;
+        window.updateBmpProgress = updateBmpProgress;
+        window.saveBmpNotes = saveBmpNotes;
+        window.toggleTutonDisc = toggleTutonDisc;
+        window.toggleTutonTask = toggleTutonTask;
+        window.openAddScheduleModal = openAddScheduleModal;
+        window.saveSchedule = saveSchedule;
+        window.deleteSchedule = deleteSchedule;
+        window.togglePomodoroTimer = togglePomodoroTimer;
+        window.resetPomodoroTimer = resetPomodoroTimer;
+        window.openAddTaskModal = openAddTaskModal;
+        window.saveTask = saveTask;
+        window.toggleTaskDone = toggleTaskDone;
+        window.deleteTask = deleteTask;
+        window.updateCourseGrade = updateCourseGrade;
+        window.closeModal = closeModal;
+        window.toggleMobileMenu = toggleMobileMenu;
+        window.requestNotificationPermission = requestNotificationPermission;
+
+        // Initialize App on Load
+        window.onload = function() {
+            loadState();
+            renderDashboard();
+
+            // Keyboard Shortcuts
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.fixed.inset-0').forEach(m => m.classList.add('hidden'));
+                }
+            });
+        };
+    </script>
+</body>
+</html>
