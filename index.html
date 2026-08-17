@@ -336,7 +336,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Pelacak Modul BMP & Catatan Ringkasan</h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Tandai Modul 1 s/d N yang sudah kamu pelajari, catat halaman dibaca, dan tulis poin penting per matkul.</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Tandai Modul 1 s/d N yang sudah kamu pelajari, catat halaman dibaca, dan tulis catatan terpisah untuk setiap modul.</p>
                         </div>
                     </div>
                     
@@ -809,8 +809,22 @@
                     c.completedModules = Array(modCount).fill(false);
                 }
 
+                // Catatan sekarang disimpan per modul.
+                // Format baru: notes = { byModule: { "1": "...", "2": "..." } }
+                // Migrasi otomatis dari format lama notes.text.
                 if (!c.notes || typeof c.notes !== "object") {
-                    c.notes = { text: "" };
+                    c.notes = { byModule: {} };
+                }
+                if (!c.notes.byModule || typeof c.notes.byModule !== "object" || Array.isArray(c.notes.byModule)) {
+                    const oldText = typeof c.notes.text === "string" ? c.notes.text : "";
+                    c.notes = { byModule: {} };
+                    if (oldText.trim()) c.notes.byModule["1"] = oldText;
+                }
+                // Pastikan semua modul punya slot catatan.
+                for (let mi = 1; mi <= modCount; mi++) {
+                    if (typeof c.notes.byModule[String(mi)] !== "string") {
+                        c.notes.byModule[String(mi)] = "";
+                    }
                 }
 
                 if (!c.tuton || typeof c.tuton !== "object") {
@@ -1127,7 +1141,7 @@
             });
         }
 
-        // Render BMP Tracker (Modul 1 s/d N Checklist + Notes)
+        // Render BMP Tracker (Modul 1 s/d N Checklist + Catatan Per Modul)
         function renderBmpTracker() {
             const select = document.getElementById('bmpCourseSelect');
             const currentSelectedVal = select.value;
@@ -1151,33 +1165,48 @@
             if (!course.completedModules || course.completedModules.length !== numModules) {
                 course.completedModules = Array(numModules).fill(false);
             }
+            if (!course.notes || typeof course.notes !== 'object') course.notes = { byModule: {} };
+            if (!course.notes.byModule || typeof course.notes.byModule !== 'object') course.notes.byModule = {};
+            for (let mi = 1; mi <= numModules; mi++) {
+                if (typeof course.notes.byModule[String(mi)] !== 'string') {
+                    course.notes.byModule[String(mi)] = "";
+                }
+            }
 
             const completedCount = course.completedModules.filter(Boolean).length;
             const modulePercent = Math.round((completedCount / numModules) * 100);
 
             let moduleGridHtml = '';
             for (let i = 0; i < numModules; i++) {
+                const moduleNumber = i + 1;
                 const isChecked = course.completedModules[i];
+                const hasNote = (course.notes.byModule[String(moduleNumber)] || '').trim().length > 0;
+
                 moduleGridHtml += `
-                    <button type="button" onclick="toggleModuleDone('${course.id}', ${i})" 
-                            class="p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between group ${isChecked ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}">
-                        <div class="flex items-center gap-3">
-                            <div class="w-6 h-6 rounded-lg flex items-center justify-center border ${isChecked ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-300 text-transparent'}">
-                                <i class="fa-solid fa-check text-2xs"></i>
-                            </div>
-                            <div>
-                                <span class="text-xs font-bold block">Modul ${i + 1}</span>
-                                <span class="text-2xs ${isChecked ? 'text-emerald-700 font-semibold' : 'text-slate-400'}">${isChecked ? 'Selesai Dibaca' : 'Belum Dibaca'}</span>
-                            </div>
+                    <div class="p-3.5 rounded-2xl border transition-all ${isChecked ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}">
+                        <div class="flex items-center justify-between gap-2">
+                            <button type="button" onclick="toggleModuleDone('${course.id}', ${i})" class="flex-1 text-left flex items-center gap-3">
+                                <div class="w-6 h-6 shrink-0 rounded-lg flex items-center justify-center border ${isChecked ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-300 text-transparent'}">
+                                    <i class="fa-solid fa-check text-2xs"></i>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold block">Modul ${moduleNumber}</span>
+                                    <span class="text-2xs ${isChecked ? 'text-emerald-700 font-semibold' : 'text-slate-400'}">${isChecked ? 'Selesai Dibaca' : 'Belum Dibaca'}</span>
+                                </div>
+                            </button>
+                            <button type="button" onclick="openModuleNote('${course.id}', ${moduleNumber})"
+                                    class="shrink-0 px-2.5 py-2 rounded-xl ${hasNote ? 'bg-ut-yellow text-ut-darkblue' : 'bg-white text-slate-500 border border-slate-200'} hover:scale-105 transition"
+                                    title="Catatan Modul ${moduleNumber}">
+                                <i class="fa-solid fa-note-sticky"></i>
+                            </button>
                         </div>
-                    </button>
+                    </div>
                 `;
             }
 
             const detailContainer = document.getElementById('bmpTrackerDetail');
             detailContainer.innerHTML = `
                 <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-                    <!-- Course BMP Header -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                         <div>
                             <span class="text-xs font-black text-ut-blue uppercase tracking-wider">${course.code} • ${course.sks} SKS</span>
@@ -1189,18 +1218,25 @@
                         </div>
                     </div>
 
-                    <!-- Checklist Modul 1 s/d N -->
                     <div>
                         <h4 class="font-extrabold text-slate-800 text-sm mb-3 flex items-center gap-2">
                             <i class="fa-solid fa-list-check text-emerald-600"></i>
-                            Checklist Modul BMP (1 s/d ${numModules})
+                            Checklist & Catatan Per Modul
                         </h4>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+                        <p class="text-xs text-slate-500 mb-3">Centang modul yang sudah selesai. Gunakan ikon 📝 untuk membuka catatan khusus modul tersebut.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             ${moduleGridHtml}
                         </div>
                     </div>
 
-                    <!-- Page Progress Tracker -->
+                    <div id="moduleNoteEditor" class="bg-ut-lightyellow p-4 rounded-2xl border border-amber-200">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-note-sticky text-amber-700"></i>
+                            <h4 class="font-extrabold text-slate-800 text-sm">Catatan Modul</h4>
+                        </div>
+                        <p class="text-xs text-slate-500">Klik 📝 pada Modul 1–${numModules} untuk membuka catatannya.</p>
+                    </div>
+
                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-3">
                         <div class="flex items-center justify-between text-xs font-bold text-slate-700">
                             <span>Detail Halaman Dibaca:</span>
@@ -1213,23 +1249,48 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Module Notes Editor -->
-                    <div>
-                        <h4 class="font-extrabold text-slate-800 text-sm mb-1.5 flex items-center gap-2">
-                            <i class="fa-solid fa-note-sticky text-ut-yellow"></i>
-                            Catatan Poin-Poin Penting BMP
-                        </h4>
-                        <p class="text-xs text-slate-500 mb-3">Tuliskan ringkasan materi atau istilah penting dari BMP untuk persiapan UAS & Tuton.</p>
-                        <textarea id="bmpNotesArea" rows="5" placeholder="Tuliskan poin penting modul di sini..." class="w-full p-4 text-xs sm:text-sm border border-slate-300 rounded-2xl focus:ring-2 focus:ring-ut-blue focus:outline-none leading-relaxed font-sans">${course.notes?.text || ''}</textarea>
-                        <div class="mt-3 text-right">
-                            <button onclick="saveBmpNotes('${course.id}')" class="px-5 py-2.5 bg-ut-blue hover:bg-ut-darkblue text-white font-bold text-xs rounded-xl transition shadow-sm">
-                                Simpan Catatan
-                            </button>
-                        </div>
-                    </div>
                 </div>
             `;
+        }
+
+        function openModuleNote(courseId, moduleNumber) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            if (!course.notes || typeof course.notes !== 'object') course.notes = { byModule: {} };
+            if (!course.notes.byModule || typeof course.notes.byModule !== 'object') course.notes.byModule = {};
+
+            const currentNote = course.notes.byModule[String(moduleNumber)] || '';
+            const editor = document.getElementById('moduleNoteEditor');
+            if (!editor) return;
+
+            editor.innerHTML = `
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-note-sticky text-amber-700"></i>
+                        <h4 class="font-extrabold text-slate-800 text-sm">Catatan Modul ${moduleNumber}</h4>
+                    </div>
+                    <span class="text-2xs font-bold text-slate-500">${course.code}</span>
+                </div>
+                <p class="text-xs text-slate-500 mb-3">Catatan ini khusus untuk Modul ${moduleNumber}. Catatan modul lain tetap terpisah.</p>
+                <textarea id="bmpNotesArea" rows="6" placeholder="Tuliskan ringkasan, istilah penting, rumus, atau hal yang perlu diingat dari Modul ${moduleNumber}..." class="w-full p-4 text-xs sm:text-sm border border-amber-200 bg-white rounded-2xl focus:ring-2 focus:ring-ut-blue focus:outline-none leading-relaxed font-sans">${escapeHtml(currentNote)}</textarea>
+                <div class="mt-3 flex items-center justify-between gap-2">
+                    <span class="text-2xs text-slate-400">Tersimpan di Firebase saat kamu menekan Simpan.</span>
+                    <button onclick="saveBmpNotes('${course.id}', ${moduleNumber})" class="px-5 py-2.5 bg-ut-blue hover:bg-ut-darkblue text-white font-bold text-xs rounded-xl transition shadow-sm">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Catatan Modul ${moduleNumber}
+                    </button>
+                </div>
+            `;
+            editor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         function toggleModuleDone(courseId, index) {
@@ -1259,14 +1320,23 @@
             renderBmpTracker();
         }
 
-        function saveBmpNotes(courseId) {
+        function saveBmpNotes(courseId, moduleNumber) {
             const course = state.courses.find(c => c.id === courseId);
             if (!course) return;
 
-            if (!course.notes) course.notes = {};
-            course.notes.text = document.getElementById('bmpNotesArea').value;
+            if (!course.notes || typeof course.notes !== 'object') course.notes = { byModule: {} };
+            if (!course.notes.byModule || typeof course.notes.byModule !== 'object') course.notes.byModule = {};
+
+            const area = document.getElementById('bmpNotesArea');
+            if (!area) return;
+
+            course.notes.byModule[String(moduleNumber)] = area.value;
             saveState();
-            showToast("Catatan modul berhasil disimpan!");
+            showToast(`Catatan Modul ${moduleNumber} berhasil disimpan!`);
+            renderBmpTracker();
+
+            // Buka kembali editor modul yang baru disimpan.
+            setTimeout(() => openModuleNote(courseId, moduleNumber), 0);
         }
 
         // Tuton 8 Sesi Tracker
@@ -1793,18 +1863,84 @@
                 showToast("Browser kamu tidak mendukung notifikasi web.", "error");
                 return;
             }
+
             Notification.requestPermission().then(permission => {
+                updateNotificationButton();
+
                 if (permission === "granted") {
-                    document.getElementById('notifBtnText').innerText = "Notif Aktif";
-                    showNotification("Notifikasi UT Tracker Aktif", "Kamu akan menerima pengingat jadwal & deadline!");
-                    showToast("Notifikasi web berhasil diaktifkan!");
+                    showNotification("Notifikasi UT Tracker Aktif", "Pengingat jadwal belajar akan muncul saat jam mulai.");
+                    showToast("Notifikasi jadwal belajar berhasil diaktifkan!");
+                    checkStudyScheduleNotifications();
+                } else if (permission === "denied") {
+                    showToast("Notifikasi diblokir browser. Izinkan dari pengaturan situs jika ingin mengaktifkannya.", "error");
                 }
             });
         }
 
         function showNotification(title, body) {
             if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, { body, icon: 'https://placehold.co/100x100/003399/ffffff?text=UT' });
+                try {
+                    new Notification(title, {
+                        body,
+                        icon: 'https://placehold.co/100x100/003399/ffffff?text=UT',
+                        tag: 'ut-study-reminder'
+                    });
+                } catch (e) {
+                    console.warn("Notification error:", e);
+                }
+            }
+        }
+
+        // Pengingat jadwal belajar otomatis.
+        // Browser notification hanya bisa muncul saat halaman/browser masih aktif.
+        let notifiedScheduleKeys = new Set();
+
+        function getDayName(date) {
+            return ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][date.getDay()];
+        }
+
+        function checkStudyScheduleNotifications() {
+            if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+            const now = new Date();
+            const today = getDayName(now);
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            state.schedules.forEach(s => {
+                if (s.day !== today || !s.startTime) return;
+
+                const [hour, minute] = String(s.startTime).split(':').map(Number);
+                const scheduleMinutes = hour * 60 + minute;
+                const key = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}-${s.id}-${s.startTime}`;
+
+                // Kirim dalam jendela 1 menit setelah jam mulai, agar tidak dobel.
+                if (currentMinutes === scheduleMinutes && !notifiedScheduleKeys.has(key)) {
+                    const course = state.courses.find(c => c.id === s.courseId);
+                    const courseName = course ? course.name : 'Mata Kuliah';
+                    showNotification(
+                        '🔔 Waktunya Belajar!',
+                        `${courseName} • ${s.activity}`
+                    );
+                    notifiedScheduleKeys.add(key);
+                    showToast(`Pengingat belajar: ${courseName}`);
+                }
+            });
+
+            // Bersihkan key lama supaya Set tidak terus membesar.
+            if (notifiedScheduleKeys.size > 100) notifiedScheduleKeys.clear();
+        }
+
+        function updateNotificationButton() {
+            const btnText = document.getElementById('notifBtnText');
+            const icon = document.getElementById('notifIcon');
+            if (!btnText || !icon) return;
+
+            if ("Notification" in window && Notification.permission === "granted") {
+                btnText.innerText = "Notif Aktif";
+                icon.className = "fa-solid fa-bell text-emerald-300";
+            } else {
+                btnText.innerText = "Aktifkan Notif";
+                icon.className = "fa-solid fa-bell text-ut-yellow";
             }
         }
 
@@ -1834,11 +1970,17 @@
         window.closeModal = closeModal;
         window.toggleMobileMenu = toggleMobileMenu;
         window.requestNotificationPermission = requestNotificationPermission;
+        window.openModuleNote = openModuleNote;
 
         // Initialize App on Load
         window.onload = async function() {
             await loadState();
             renderDashboard();
+            updateNotificationButton();
+            checkStudyScheduleNotifications();
+
+            // Cek jadwal setiap 20 detik agar pengingat muncul tepat saat jam mulai.
+            setInterval(checkStudyScheduleNotifications, 20000);
 
             // Keyboard Shortcuts
             window.addEventListener('keydown', (e) => {
