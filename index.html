@@ -134,7 +134,7 @@
             <div class="flex items-center gap-2 sm:gap-3">
                 <button onclick="requestNotificationPermission()" id="notifBtn" class="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 rounded-xl transition border border-white/20 text-white backdrop-blur-sm">
                     <i class="fa-solid fa-bell text-ut-yellow" id="notifIcon"></i>
-                    <span id="notifBtnText" class="hidden sm:inline">Aktifkan Notif Belajar</span>
+                    <span id="notifBtnText" class="hidden sm:inline">Aktifkan Notif</span>
                 </button>
                 <button onclick="openEditProfileModal()" class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold bg-ut-yellow text-ut-darkblue hover:bg-yellow-300 rounded-xl transition shadow-sm border border-yellow-200">
                     <i class="fa-solid fa-user-pen"></i>
@@ -719,16 +719,69 @@
         </div>
     </div>
 
+
+    <!-- MODAL CATATAN PER MODUL -->
+    <div id="moduleNotesModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-[28px] max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-ut-blue to-blue-700 px-5 sm:px-6 py-5 text-white">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-[0.18em] font-black text-blue-200">Catatan Belajar</div>
+                        <h3 id="moduleNotesTitle" class="text-lg sm:text-xl font-black mt-1">Modul 1</h3>
+                        <p id="moduleNotesSubtitle" class="text-xs text-blue-100 mt-1">Poin penting yang kamu temukan saat membaca.</p>
+                    </div>
+                    <button onclick="closeModal('moduleNotesModal')" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-5 sm:p-6">
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-lightbulb"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-extrabold text-amber-900">Tips mencatat</p>
+                            <p class="text-[11px] leading-relaxed text-amber-800 mt-0.5">Satu baris untuk satu ide. Contoh: definisi, konsep utama, rumus, istilah penting, atau contoh kasus.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="block text-xs font-black text-slate-700 mb-2">Poin-poin penting</label>
+                <textarea id="moduleNotesArea" rows="10"
+                    placeholder="• Pengertian utama...
+• Konsep yang harus diingat...
+• Contoh / rumus penting...
+• Kesimpulan..."
+                    class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-700 leading-7 resize-y focus:bg-white focus:border-ut-blue focus:ring-4 focus:ring-blue-100 focus:outline-none transition"></textarea>
+
+                <div class="flex items-center justify-between gap-3 mt-4">
+                    <span id="moduleNotesStatus" class="text-[11px] text-slate-400 font-semibold">Belum ada catatan</span>
+                    <div class="flex gap-2">
+                        <button onclick="closeModal('moduleNotesModal')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+                            Batal
+                        </button>
+                        <button id="saveModuleNotesBtn" class="px-5 py-2.5 bg-ut-blue hover:bg-ut-darkblue text-white rounded-xl text-xs font-bold transition shadow-md">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Catatan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT APP LOGIC -->
     <script>
         // Default State Data
         const DEFAULT_COURSES = [
-            { id: 'c1', code: 'MSIM4101', name: 'Pengantar Sistem Informasi', sks: 3, modules: 9, readPages: 45, totalPages: 320, completedModules: [true, false, false, false, false, false, false, false, false], notes: { text: 'Modul 1: Pengertian SI, Komponen Hardware, Software, Brainware.' }, tuton: { discussions: [true, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
-            { id: 'c2', code: 'MSIM4102', name: 'Algoritma & Pemrograman', sks: 3, modules: 9, readPages: 60, totalPages: 350, completedModules: [true, true, false, false, false, false, false, false, false], notes: { text: 'Modul 1 & 2: Pseudo-code, Flowchart, Tipe Data & Control Flow.' }, tuton: { discussions: [true, true, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
-            { id: 'c3', code: 'MSIM4103', name: 'Logika Matematika', sks: 3, modules: 9, readPages: 20, totalPages: 280, completedModules: [false, false, false, false, false, false, false, false, false], notes: { text: '' }, tuton: { discussions: [false, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A-' },
-            { id: 'c4', code: 'MKWU4101', name: 'Pancasila', sks: 2, modules: 6, readPages: 80, totalPages: 200, completedModules: [true, true, true, false, false, false], notes: { text: '' }, tuton: { discussions: [true, true, true, false, false, false, false, false], tasks: [true, false, false] }, gpaGrade: 'A' },
-            { id: 'c5', code: 'MKWU4108', name: 'Bahasa Indonesia', sks: 3, modules: 9, readPages: 90, totalPages: 300, completedModules: [true, false, false, false, false, false, false, false, false], notes: { text: '' }, tuton: { discussions: [true, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
-            { id: 'c6', code: 'MSIM4104', name: 'Basis Data', sks: 3, modules: 9, readPages: 30, totalPages: 310, completedModules: [false, false, false, false, false, false, false, false, false], notes: { text: '' }, tuton: { discussions: [false, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'B+' }
+            { id: 'c1', code: 'MSIM4101', name: 'Pengantar Sistem Informasi', sks: 3, modules: 9, readPages: 45, totalPages: 320, completedModules: [true, false, false, false, false, false, false, false, false], notes: { text: 'Modul 1: Pengertian SI, Komponen Hardware, Software, Brainware.', modules: {} }, tuton: { discussions: [true, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
+            { id: 'c2', code: 'MSIM4102', name: 'Algoritma & Pemrograman', sks: 3, modules: 9, readPages: 60, totalPages: 350, completedModules: [true, true, false, false, false, false, false, false, false], notes: { text: 'Modul 1 & 2: Pseudo-code, Flowchart, Tipe Data & Control Flow.', modules: {} }, tuton: { discussions: [true, true, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
+            { id: 'c3', code: 'MSIM4103', name: 'Logika Matematika', sks: 3, modules: 9, readPages: 20, totalPages: 280, completedModules: [false, false, false, false, false, false, false, false, false], notes: { text: '', modules: {} }, tuton: { discussions: [false, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A-' },
+            { id: 'c4', code: 'MKWU4101', name: 'Pancasila', sks: 2, modules: 6, readPages: 80, totalPages: 200, completedModules: [true, true, true, false, false, false], notes: { text: '', modules: {} }, tuton: { discussions: [true, true, true, false, false, false, false, false], tasks: [true, false, false] }, gpaGrade: 'A' },
+            { id: 'c5', code: 'MKWU4108', name: 'Bahasa Indonesia', sks: 3, modules: 9, readPages: 90, totalPages: 300, completedModules: [true, false, false, false, false, false, false, false, false], notes: { text: '', modules: {} }, tuton: { discussions: [true, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'A' },
+            { id: 'c6', code: 'MSIM4104', name: 'Basis Data', sks: 3, modules: 9, readPages: 30, totalPages: 310, completedModules: [false, false, false, false, false, false, false, false, false], notes: { text: '', modules: {} }, tuton: { discussions: [false, false, false, false, false, false, false, false], tasks: [false, false, false] }, gpaGrade: 'B+' }
         ];
 
         const DEFAULT_SCHEDULES = [
@@ -809,17 +862,16 @@
                     c.completedModules = Array(modCount).fill(false);
                 }
 
-                // Catatan sekarang disimpan PER MODUL.
-                // Kompatibilitas: catatan lama (c.notes.text) dipindahkan ke Modul 1.
-                const oldNote = (c.notes && typeof c.notes === "object" && typeof c.notes.text === "string") ? c.notes.text : "";
-                if (!Array.isArray(c.moduleNotes) || c.moduleNotes.length !== modCount) {
-                    const oldNotes = Array.isArray(c.moduleNotes) ? c.moduleNotes : [];
-                    c.moduleNotes = Array(modCount).fill("");
-                    oldNotes.forEach((n, i) => { if (i < modCount) c.moduleNotes[i] = n || ""; });
-                    if (oldNote && !c.moduleNotes[0]) c.moduleNotes[0] = oldNote;
+                if (!c.notes || typeof c.notes !== "object") {
+                    c.notes = { text: "", modules: {} };
                 }
-                // Tetap pertahankan format lama supaya data lama tidak rusak.
-                c.notes = { text: c.moduleNotes.join("\n\n") };
+                if (!c.notes.modules || typeof c.notes.modules !== "object" || Array.isArray(c.notes.modules)) {
+                    c.notes.modules = {};
+                }
+                // Migrasi catatan lama: simpan sebagai catatan Modul 1 agar tidak hilang.
+                if (c.notes.text && !c.notes.modules["1"]) {
+                    c.notes.modules["1"] = c.notes.text;
+                }
 
                 if (!c.tuton || typeof c.tuton !== "object") {
                     c.tuton = {
@@ -1135,7 +1187,7 @@
             });
         }
 
-        // Render BMP Tracker (Modul 1 s/d N Checklist + Notes)
+        // Render BMP Tracker (Modul 1 s/d N Checklist + Catatan Per Modul)
         function renderBmpTracker() {
             const select = document.getElementById('bmpCourseSelect');
             const currentSelectedVal = select.value;
@@ -1159,28 +1211,50 @@
             if (!course.completedModules || course.completedModules.length !== numModules) {
                 course.completedModules = Array(numModules).fill(false);
             }
+            if (!course.notes || typeof course.notes !== 'object') course.notes = {};
+            if (!course.notes.modules || typeof course.notes.modules !== 'object') course.notes.modules = {};
+            if (course.notes.text && !course.notes.modules["1"]) course.notes.modules["1"] = course.notes.text;
 
             const completedCount = course.completedModules.filter(Boolean).length;
             const modulePercent = Math.round((completedCount / numModules) * 100);
 
             let moduleGridHtml = '';
             for (let i = 0; i < numModules; i++) {
-                const isChecked = course.completedModules[i];
-                const noteText = course.moduleNotes?.[i] || '';
+                const moduleNo = i + 1;
+                const isChecked = !!course.completedModules[i];
+                const note = (course.notes.modules[String(moduleNo)] || '').trim();
+                const hasNote = note.length > 0;
+
                 moduleGridHtml += `
-                    <div class="p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-2 ${isChecked ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-700'}">
-                        <button type="button" onclick="toggleModuleDone('${course.id}', ${i})" class="flex items-center gap-3 text-left flex-1 min-w-0">
-                            <div class="w-6 h-6 flex-shrink-0 rounded-lg flex items-center justify-center border ${isChecked ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-300 text-transparent'}">
-                                <i class="fa-solid fa-check text-2xs"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <span class="text-xs font-bold block">Modul ${i + 1}</span>
-                                <span class="text-2xs ${isChecked ? 'text-emerald-700 font-semibold' : 'text-slate-400'}">${isChecked ? 'Selesai Dibaca' : 'Belum Dibaca'}</span>
-                            </div>
-                        </button>
-                        <button type="button" onclick="editModuleNote('${course.id}', ${i})" class="relative flex-shrink-0 w-9 h-9 rounded-xl ${noteText ? 'bg-ut-yellow text-ut-darkblue' : 'bg-white text-slate-400 border border-slate-200'} hover:scale-105 transition" title="Catatan Modul ${i + 1}">
-                            <i class="fa-solid fa-note-sticky"></i>
-                            ${noteText ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>' : ''}
+                    <div class="group bg-white rounded-2xl border ${isChecked ? 'border-emerald-200' : 'border-slate-200'} p-3.5 hover:shadow-md hover:-translate-y-0.5 transition-all">
+                        <div class="flex items-center justify-between gap-2">
+                            <button type="button" onclick="toggleModuleDone('${course.id}', ${i})"
+                                class="flex items-center gap-3 min-w-0 text-left flex-1">
+                                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${isChecked ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-slate-50 border-slate-200 text-slate-400'}">
+                                    <i class="fa-solid ${isChecked ? 'fa-check' : 'fa-book-open'} text-xs"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <span class="text-xs font-black text-slate-800 block">Modul ${moduleNo}</span>
+                                    <span class="text-[10px] ${isChecked ? 'text-emerald-600' : 'text-slate-400'} font-semibold">
+                                        ${isChecked ? 'Selesai dibaca' : 'Belum dibaca'}
+                                    </span>
+                                </div>
+                            </button>
+
+                            <button type="button" onclick="openModuleNotes('${course.id}', ${moduleNo})"
+                                class="relative w-9 h-9 rounded-xl ${hasNote ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-400 border-slate-200'} border hover:bg-amber-100 hover:text-amber-700 transition shrink-0"
+                                title="${hasNote ? 'Edit catatan Modul ' + moduleNo : 'Tambah catatan Modul ' + moduleNo}">
+                                <i class="fa-solid fa-note-sticky text-xs"></i>
+                                ${hasNote ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>' : ''}
+                            </button>
+                        </div>
+
+                        <button type="button" onclick="openModuleNotes('${course.id}', ${moduleNo})"
+                            class="w-full mt-3 px-3 py-2 rounded-xl bg-slate-50 hover:bg-blue-50 text-left transition border border-transparent hover:border-blue-100">
+                            <span class="text-[10px] font-bold ${hasNote ? 'text-ut-blue' : 'text-slate-400'}">
+                                <i class="fa-solid ${hasNote ? 'fa-pen' : 'fa-plus'} mr-1"></i>
+                                ${hasNote ? 'Edit catatan poin penting' : 'Tambah catatan poin penting'}
+                            </span>
                         </button>
                     </div>
                 `;
@@ -1188,35 +1262,36 @@
 
             const detailContainer = document.getElementById('bmpTrackerDetail');
             detailContainer.innerHTML = `
-                <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-                    <!-- Course BMP Header -->
+                <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                         <div>
-                            <span class="text-xs font-black text-ut-blue uppercase tracking-wider">${course.code} • ${course.sks} SKS</span>
-                            <h3 class="text-xl font-extrabold text-slate-800 tracking-tight">${course.name}</h3>
+                            <span class="text-[10px] font-black text-ut-blue uppercase tracking-[0.16em]">${course.code} • ${course.sks} SKS</span>
+                            <h3 class="text-xl font-extrabold text-slate-800 tracking-tight mt-1">${course.name}</h3>
+                            <p class="text-xs text-slate-500 mt-1">Centang modul yang selesai dan simpan catatan khusus untuk tiap modul.</p>
                         </div>
-                        <div class="text-left sm:text-right">
-                            <span class="text-3xl font-black text-emerald-600">${modulePercent}%</span>
-                            <p class="text-xs text-slate-500 font-medium">${completedCount} dari ${numModules} Modul Selesai</p>
+                        <div class="text-left sm:text-right bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3">
+                            <span class="text-2xl font-black text-emerald-600">${modulePercent}%</span>
+                            <p class="text-[10px] text-emerald-700 font-bold">${completedCount} dari ${numModules} modul selesai</p>
                         </div>
                     </div>
 
-                    <!-- Checklist Modul 1 s/d N -->
                     <div>
-                        <h4 class="font-extrabold text-slate-800 text-sm mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-list-check text-emerald-600"></i>
-                            Checklist Modul BMP (1 s/d ${numModules})
-                        </h4>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-layer-group text-ut-blue"></i>
+                                Modul & Catatan
+                            </h4>
+                            <span class="text-[10px] text-slate-400 font-semibold">📝 = catatan</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             ${moduleGridHtml}
                         </div>
                     </div>
 
-                    <!-- Page Progress Tracker -->
                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-3">
                         <div class="flex items-center justify-between text-xs font-bold text-slate-700">
-                            <span>Detail Halaman Dibaca:</span>
-                            <span class="text-slate-500">${course.readPages} / ${course.totalPages} Halaman</span>
+                            <span><i class="fa-solid fa-book-open mr-1 text-ut-blue"></i> Detail Halaman Dibaca</span>
+                            <span class="text-slate-500">${course.readPages} / ${course.totalPages} halaman</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <input type="number" id="bmpPageInput" value="${course.readPages}" min="0" max="${course.totalPages}" class="w-32 px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold focus:ring-2 focus:ring-ut-blue focus:outline-none">
@@ -1225,19 +1300,42 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Module Notes Info -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-                        <h4 class="font-extrabold text-ut-blue text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-note-sticky text-ut-yellow"></i>
-                            Catatan Per Modul
-                        </h4>
-                        <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                            Setiap modul sekarang punya catatan sendiri. Klik ikon 📝 pada Modul 1, Modul 2, dan seterusnya untuk menulis atau mengubah catatan modul tersebut.
-                        </p>
-                    </div>
                 </div>
             `;
+        }
+
+        function openModuleNotes(courseId, moduleNo) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            if (!course.notes || typeof course.notes !== 'object') course.notes = {};
+            if (!course.notes.modules || typeof course.notes.modules !== 'object') course.notes.modules = {};
+
+            const existing = course.notes.modules[String(moduleNo)] || '';
+            document.getElementById('moduleNotesTitle').innerText = `Modul ${moduleNo} — ${course.code}`;
+            document.getElementById('moduleNotesSubtitle').innerText = course.name;
+            document.getElementById('moduleNotesArea').value = existing;
+            document.getElementById('moduleNotesStatus').innerText = existing.trim() ? 'Catatan tersimpan' : 'Belum ada catatan';
+
+            const saveBtn = document.getElementById('saveModuleNotesBtn');
+            saveBtn.onclick = () => saveModuleNotes(courseId, moduleNo);
+
+            document.getElementById('moduleNotesModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('moduleNotesArea').focus(), 100);
+        }
+
+        function saveModuleNotes(courseId, moduleNo) {
+            const course = state.courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            if (!course.notes || typeof course.notes !== 'object') course.notes = {};
+            if (!course.notes.modules || typeof course.notes.modules !== 'object') course.notes.modules = {};
+
+            course.notes.modules[String(moduleNo)] = document.getElementById('moduleNotesArea').value.trim();
+            saveState();
+            closeModal('moduleNotesModal');
+            renderBmpTracker();
+            showToast(`Catatan Modul ${moduleNo} berhasil disimpan!`);
         }
 
         function toggleModuleDone(courseId, index) {
@@ -1265,31 +1363,6 @@
             showToast("Progress halaman berhasil disimpan!");
             renderDashboard();
             renderBmpTracker();
-        }
-
-        function editModuleNote(courseId, moduleIndex) {
-            const course = state.courses.find(c => c.id === courseId);
-            if (!course) return;
-
-            const numModules = parseInt(course.modules) || 9;
-            if (!Array.isArray(course.moduleNotes) || course.moduleNotes.length !== numModules) {
-                course.moduleNotes = Array(numModules).fill("");
-            }
-
-            const current = course.moduleNotes[moduleIndex] || "";
-            const result = window.prompt(`Catatan Modul ${moduleIndex + 1}\n\nTulis ringkasan, istilah penting, atau poin yang ingin kamu ingat:`, current);
-            if (result === null) return;
-
-            course.moduleNotes[moduleIndex] = result;
-            course.notes = { text: course.moduleNotes.join("\n\n") };
-            saveState();
-            renderBmpTracker();
-            showToast(`Catatan Modul ${moduleIndex + 1} berhasil disimpan!`);
-        }
-
-        // Kompatibilitas dengan tombol lama, kalau ada data/UI lama yang masih memanggil fungsi ini.
-        function saveBmpNotes(courseId) {
-            editModuleNote(courseId, 0);
         }
 
         // Tuton 8 Sesi Tracker
@@ -1709,7 +1782,7 @@
                     id: 'c_' + Date.now(),
                     code, name, sks, modules, readPages: 0, totalPages,
                     completedModules: Array(modules).fill(false),
-                    notes: { text: '' }, moduleNotes: Array(parseInt(modules) || 9).fill(''), tuton: { discussions: Array(8).fill(false), tasks: Array(3).fill(false) },
+                    notes: {}, tuton: { discussions: Array(8).fill(false), tasks: Array(3).fill(false) },
                     gpaGrade: 'A'
                 };
                 state.courses.push(newCourse);
@@ -1811,46 +1884,6 @@
             overlay.classList.toggle('hidden');
         }
 
-        // ===============================
-        // PENGINGAT JAM BELAJAR
-        // ===============================
-        const REMINDER_DAYS = {
-            'Minggu': 0, 'Senin': 1, 'Selasa': 2, 'Rabu': 3,
-            'Kamis': 4, 'Jumat': 5, 'Sabtu': 6
-        };
-        const sentStudyReminders = new Set();
-
-        function checkStudyReminders() {
-            if (!("Notification" in window) || Notification.permission !== "granted") return;
-
-            const now = new Date();
-            const dayName = Object.keys(REMAINDER_DAYS_FIX).find(k => REMAINDER_DAYS_FIX[k] === now.getDay());
-            if (!dayName) return;
-            const hhmm = now.toTimeString().slice(0, 5);
-            const dateKey = now.toISOString().slice(0, 10);
-
-            state.schedules.filter(s => s.day === dayName && s.startTime === hhmm).forEach(s => {
-                const reminderKey = `${dateKey}_${s.id}_${s.startTime}`;
-                if (sentStudyReminders.has(reminderKey)) return;
-                sentStudyReminders.add(reminderKey);
-
-                const course = state.courses.find(c => c.id === s.courseId);
-                const courseName = course ? `${course.code} - ${course.name}` : 'Belajar UT';
-                showNotification('🔔 Waktunya Belajar!', `${courseName}\n${s.startTime}–${s.endTime} • ${s.activity}`);
-            });
-
-            // Bersihkan penanda lama supaya Set tidak terus membesar.
-            if (sentStudyReminders.size > 100) sentStudyReminders.clear();
-        }
-
-        // Nama konstanta ini sengaja dipisah agar kompatibel dengan browser lama.
-        const REMAINDER_DAYS_FIX = REMINDER_DAYS;
-
-        function startStudyReminderChecker() {
-            checkStudyReminders();
-            setInterval(checkStudyReminders, 15000);
-        }
-
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
                 showToast("Browser kamu tidak mendukung notifikasi web.", "error");
@@ -1902,7 +1935,6 @@
         window.onload = async function() {
             await loadState();
             renderDashboard();
-            startStudyReminderChecker();
 
             // Keyboard Shortcuts
             window.addEventListener('keydown', (e) => {
